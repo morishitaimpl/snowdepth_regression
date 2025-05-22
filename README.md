@@ -1,2 +1,8 @@
 # snowdepth_regression
 統計学的手法の回帰分析で積雪深を求める
+
+snowdepth_regression_single
+snowdepth_regression_multiple
+snowdepth_nonlinear_regression
+
+ニューラルネットワークで積雪深を求める
