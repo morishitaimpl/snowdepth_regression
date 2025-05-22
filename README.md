@@ -1,0 +1,2 @@
+# snowdepth_regression
+統計学的手法の回帰分析で積雪深を求める
