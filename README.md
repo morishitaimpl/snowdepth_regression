@@ -1,5 +1,6 @@
 # snowdepth_regression
-統計学的手法の回帰分析で積雪深を求める
+気象データから積雪深を予測します。
+各ディレクトリの使用方法はREADMEをご覧ください。
 
 統計的手法
 snowdepth_regression_single, 
