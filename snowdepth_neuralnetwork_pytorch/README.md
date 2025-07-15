@@ -19,24 +19,40 @@ The neural network (`neuralnetwork` class in `config.py`) uses:
 
 ## Usage
 
-### Training
+### Training (Required First Step)
 ```bash
-python train.py data_2016_2025.csv output_directory
+python train.py data_2016_2025.csv output/
 ```
+
+This will:
+- Train the neural network using the provided data
+- Save the trained model to `output/model.pth`
+- Generate loss curve visualization
+- Display training metrics (MSE, RMSE, R²)
 
 ### Interactive Prediction
 ```bash
-python predict_snowdepth.py model.pth [output_directory]
+python predict_snowdepth.py output/model.pth [results/]
 ```
 
-The prediction script now uses **terminal input** instead of CSV file reading:
-1. Load the trained model
+The prediction script uses **terminal input** instead of CSV file reading:
+1. Load the trained model and scalers
 2. Prompt user to input meteorological data interactively
 3. Generate snow depth prediction
 4. Optionally compare with actual value if provided
 5. Save results to text file and generate comparison graph
 
+**Important**: You must train a model first using `train.py` before using `predict_snowdepth.py`.
+
 ## Recent Changes (2025-01-15)
+
+### Completed train.py implementation
+- **Added missing imports** - pandas, sklearn modules, torch.optim, matplotlib
+- **Fixed data loading** - properly reads CSV file from command line argument
+- **Implemented complete training loop** - PyTorch training with loss calculation and optimization
+- **Added proper model checkpoint saving** - includes scalers and input features for prediction compatibility
+- **Enhanced evaluation metrics** - MSE, RMSE, R² for both training and test sets
+- **Added loss curve visualization** - saves training progress plot
 
 ### Modified predict_snowdepth.py
 - **Changed from CSV input to interactive terminal input**
@@ -53,11 +69,14 @@ The prediction script now uses **terminal input** instead of CSV file reading:
 - **Updated default input_size** in class constructor
 
 ### Key Improvements
-- **User-friendly terminal interface** - no need for CSV files
+- **Complete training pipeline** - functional train.py that generates proper model files
+- **Checkpoint compatibility** - training saves scalers and metadata needed for prediction
+- **User-friendly terminal interface** - no need for CSV files during prediction
 - **Real-time prediction capability** - input data and get immediate results
 - **Better code organization** - main logic not wrapped in functions
 - **Consistent class naming** throughout the codebase
 - **Enhanced error handling** for user input validation
+- **Proper workflow documentation** - clear steps from training to prediction
 
 ## Input Features
 

@@ -4,7 +4,6 @@ sys.dont_write_bytecode = True
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision import models
 
 # 繰り返す回数
 epochSize = 500
