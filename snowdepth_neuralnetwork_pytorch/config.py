@@ -6,21 +6,33 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # 繰り返す回数
-epochSize = 500
+epochSize = 450
 
 batchSize = 5
 
-input_size = 13
+# def add_noise(inputs, noise_level=0.01):
+#     noise = torch.randn_like(inputs) * noise_level
+#     return inputs + noise
+
 
 class neuralnetwork(nn.Module):
-    def __init__(self, input_size=13, hidden_size=64, output_size=1):
+    def __init__(self, input_size=13, output_size=1):
         super(neuralnetwork, self).__init__()
+        
         self.model = nn.Sequential(
-            nn.Linear(input_size, hidden_size),
+            nn.Linear(input_size, 128),
             nn.ReLU(),
-            nn.Linear(hidden_size, hidden_size),
+            nn.Dropout(0.3),
+            nn.Linear(128, 64),
             nn.ReLU(),
-            nn.Linear(hidden_size, output_size)
+            nn.Dropout(0.3),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(32, 16),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(16, output_size)
         )
 
     def forward(self, x):
