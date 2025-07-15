@@ -6,6 +6,8 @@ import torch
 import torch.nn as nn
 from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
+from datetime import datetime
+import os
 
 import config as cf
 
@@ -103,10 +105,241 @@ def save_predictions(data, y_pred, output_path):
     result_df.to_csv(output_path, index=False)
     print(f"予測結果を {output_path} に保存しました")
 
+def predict_single_day(model, scaler_x, scaler_y, input_features, input_data):
+    """単日のデータから積雪深を予測"""
+    df = pd.DataFrame([input_data], columns=input_features)
+    x_tensor = preprocess_data(df, input_features, scaler_x)
+    y_pred = make_predictions(model, x_tensor, scaler_y)
+    return y_pred[0]
+
+class SnowDepthInteractive:
+    def __init__(self):
+        self.model = None
+        self.scaler_x = None
+        self.scaler_y = None
+        self.input_features = None
+        self.field_labels = {
+            'month': '月 (1-12)',
+            'day': '日 (1-31)',
+            'land_atmosphere': '陸上気圧 (hPa)',
+            'sea_atmosphere': '海上気圧 (hPa)',
+            'precipitation': '降水量 (mm)',
+            'temperature': '気温 (°C)',
+            'humidity': '湿度 (%)',
+            'wind_speed': '風速 (m/s)',
+            'wind_direction': '風向 (度)',
+            'sum_insolation': '日射量 (MJ/m²)',
+            'sum_sunlight': '日照時間 (時間)',
+            'snow_falling': '降雪量 (cm)',
+            'melted_snow': '融雪量 (cm)'
+        }
+        self.prediction_history = []
+    
+    def clear_screen(self):
+        """画面をクリア"""
+        os.system('clear' if os.name == 'posix' else 'cls')
+    
+    def print_header(self):
+        """ヘッダーを表示"""
+        print("=" * 60)
+        print("           積雪深予測システム - インタラクティブモード")
+        print("=" * 60)
+        print()
+    
+    def load_model_interactive(self):
+        """インタラクティブにモデルを読み込み"""
+        while True:
+            print("モデルファイルのパスを入力してください:")
+            print("(例: test_output/model.pth)")
+            model_path = input("モデルパス: ").strip()
+            
+            if not model_path:
+                print("エラー: モデルパスを入力してください")
+                continue
+            
+            if not os.path.exists(model_path):
+                print(f"エラー: ファイルが見つかりません: {model_path}")
+                continue
+            
+            try:
+                self.model, self.scaler_x, self.scaler_y, self.input_features = load_model(model_path)
+                print(f"\n✓ モデルを正常に読み込みました")
+                print(f"✓ 入力特徴量: {self.input_features}")
+                print()
+                return True
+            except Exception as e:
+                print(f"エラー: モデルの読み込みに失敗しました: {str(e)}")
+                retry = input("再試行しますか？ (y/n): ").strip().lower()
+                if retry != 'y':
+                    return False
+    
+    def input_daily_data(self):
+        """日次データを入力"""
+        print("気象データを入力してください:")
+        print("-" * 40)
+        
+        input_data = []
+        for field in self.input_features:
+            label = self.field_labels[field]
+            while True:
+                try:
+                    value_str = input(f"{label}: ").strip()
+                    if not value_str:
+                        print("エラー: 値を入力してください")
+                        continue
+                    value = float(value_str)
+                    input_data.append(value)
+                    break
+                except ValueError:
+                    print("エラー: 数値を入力してください")
+        
+        return input_data
+    
+    def predict_and_display(self, input_data):
+        """予測を実行して結果を表示"""
+        try:
+            predicted_depth = predict_single_day(
+                self.model, self.scaler_x, self.scaler_y, 
+                self.input_features, input_data
+            )
+            
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            print("\n" + "=" * 50)
+            print("           予測結果")
+            print("=" * 50)
+            print(f"予測時刻: {timestamp}")
+            print(f"予測積雪深: {predicted_depth:.2f} cm")
+            print("=" * 50)
+            
+            self.prediction_history.append({
+                'timestamp': timestamp,
+                'input_data': input_data,
+                'predicted_depth': predicted_depth
+            })
+            
+            return predicted_depth
+            
+        except Exception as e:
+            print(f"エラー: 予測に失敗しました: {str(e)}")
+            return None
+    
+    def show_history(self):
+        """予測履歴を表示"""
+        if not self.prediction_history:
+            print("予測履歴がありません")
+            return
+        
+        print("\n" + "=" * 60)
+        print("           予測履歴")
+        print("=" * 60)
+        
+        for i, record in enumerate(self.prediction_history, 1):
+            print(f"\n{i}. {record['timestamp']}")
+            print(f"   入力データ:")
+            for field, value in zip(self.input_features, record['input_data']):
+                print(f"     {self.field_labels[field]}: {value}")
+            print(f"   予測積雪深: {record['predicted_depth']:.2f} cm")
+            print("-" * 40)
+    
+    def save_history(self):
+        """予測履歴をCSVファイルに保存"""
+        if not self.prediction_history:
+            print("保存する履歴がありません")
+            return
+        
+        output_path = input("保存先ファイル名 (例: predictions_history.csv): ").strip()
+        if not output_path:
+            output_path = "predictions_history.csv"
+        
+        try:
+            records = []
+            for record in self.prediction_history:
+                row = {}
+                for field, value in zip(self.input_features, record['input_data']):
+                    row[field] = value
+                row['predicted_snow_depth'] = record['predicted_depth']
+                row['timestamp'] = record['timestamp']
+                records.append(row)
+            
+            df = pd.DataFrame(records)
+            df.to_csv(output_path, index=False)
+            print(f"✓ 予測履歴を {output_path} に保存しました")
+            
+        except Exception as e:
+            print(f"エラー: 保存に失敗しました: {str(e)}")
+    
+    def show_menu(self):
+        """メニューを表示"""
+        print("\n" + "-" * 40)
+        print("メニュー:")
+        print("1. 新しい予測を実行")
+        print("2. 予測履歴を表示")
+        print("3. 履歴をCSVファイルに保存")
+        print("4. 画面をクリア")
+        print("5. 終了")
+        print("-" * 40)
+    
+    def run(self):
+        """インタラクティブモードを実行"""
+        self.clear_screen()
+        self.print_header()
+        
+        if not self.load_model_interactive():
+            print("モデルの読み込みに失敗しました。終了します。")
+            return
+        
+        while True:
+            self.show_menu()
+            choice = input("選択してください (1-5): ").strip()
+            
+            if choice == '1':
+                print("\n" + "=" * 50)
+                print("           新しい予測")
+                print("=" * 50)
+                input_data = self.input_daily_data()
+                self.predict_and_display(input_data)
+                
+            elif choice == '2':
+                self.show_history()
+                
+            elif choice == '3':
+                self.save_history()
+                
+            elif choice == '4':
+                self.clear_screen()
+                self.print_header()
+                
+            elif choice == '5':
+                print("\n積雪深予測システムを終了します。")
+                if self.prediction_history:
+                    save_choice = input("終了前に履歴を保存しますか？ (y/n): ").strip().lower()
+                    if save_choice == 'y':
+                        self.save_history()
+                break
+                
+            else:
+                print("無効な選択です。1-5の数字を入力してください。")
+
+def run_interactive_mode():
+    """インタラクティブモードを実行"""
+    app = SnowDepthInteractive()
+    app.run()
+
 if __name__ == "__main__":
+    if len(sys.argv) == 1 or (len(sys.argv) == 2 and sys.argv[1] in ["--interactive", "-i"]):
+        print("=== 積雪深予測システム - インタラクティブモード ===")
+        print("インタラクティブモードを起動しています...")
+        run_interactive_mode()
+        sys.exit(0)
+    
     if len(sys.argv) < 3:
-        print("使用方法: python predict_snowdepth.py <model_path> <data_path> [output_dir]")
-        print("例: python predict_snowdepth.py output/model.pth data_2016_2025.csv results/")
+        print("使用方法:")
+        print("  インタラクティブモード: python predict_snowdepth.py [--interactive | -i]")
+        print("  CSV モード: python predict_snowdepth.py <model_path> <data_path> [output_dir]")
+        print("例:")
+        print("  python predict_snowdepth.py --interactive")
+        print("  python predict_snowdepth.py output/model.pth data_2016_2025.csv results/")
         sys.exit(1)
     
     model_path = sys.argv[1]
@@ -116,7 +349,7 @@ if __name__ == "__main__":
     if not output_dir.exists():
         output_dir.mkdir(parents=True)
     
-    print("=== 積雪深予測評価システム ===")
+    print("=== 積雪深予測評価システム - CSV モード ===")
     print(f"モデル: {model_path}")
     print(f"データ: {data_path}")
     print(f"出力先: {output_dir}")
