@@ -11,9 +11,11 @@ epochSize = 500
 
 batchSize = 5
 
+input_size = 13
+
 class neuralnetwork(nn.Module):
-    def __init__(self, input_size=10, hidden_size=64, output_size=1):
-        super(SnowDepthPredictor, self).__init__()
+    def __init__(self, input_size=13, hidden_size=64, output_size=1):
+        super(neuralnetwork, self).__init__()
         self.model = nn.Sequential(
             nn.Linear(input_size, hidden_size),
             nn.ReLU(),
