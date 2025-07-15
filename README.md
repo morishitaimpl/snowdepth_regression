@@ -8,4 +8,5 @@ snowdepth_regression_multiple,
 snowdepth_nonlinear_regression, 
 
 機械学習手法
-snowdepth_neuralnetwork
+snowdepth_neuralnetwork_scikitlearn
+snowdepth_neuralnetwork_pytorch
